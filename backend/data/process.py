@@ -44,10 +44,6 @@ def process_financial_data(tables):
     gross_profit = None     
           
     for i, table in enumerate(tables):
-        # Set the first row as column headers and remove it
-        table.columns = table.iloc[0]
-        table = table.drop(0)
-
         # Convert all cells to lowercase for matching
         table_lower = table.astype(str).apply(lambda col: col.str.lower())
     
@@ -80,10 +76,6 @@ def process_financial_data(tables):
 
     # Loop through all the tables
     for i, table in enumerate(tables):
-        # Set the first row as column headers and remove it
-        table.columns = table.iloc[0]
-        table = table.drop(0)
-
         # Convert all cells to lowercase for matching
         table_lower = table.astype(str).apply(lambda col: col.str.lower())
     
@@ -113,7 +105,7 @@ def process_financial_data(tables):
 
             # Append to financial_data if year is found
     if year is not None:
-        financial_data['year'].append(clean_number(year))
+        financial_data['year'].append(year)
         financial_data['revenue'].append(clean_number(revenue))
         financial_data['cost_of_sales'].append(clean_number(cost_of_sales))
         financial_data['operating_expenses'].append(clean_number(operating_expenses))
