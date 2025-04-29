@@ -6,17 +6,17 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-def clean_column_name(name):
-    """Utility to clean messy column names."""
-    return str(name).strip().lower().replace(' ', '_').replace('\n', '').replace('.', '').replace('/', '_')
-
-def match_column(available_columns, keywords):
-    """Try to match closest column name based on list of keywords."""
-    for col in available_columns:
-        for keyword in keywords:
-            if keyword in col:
-                return col
-    return None
+def clean_number(value):
+    """Convert financial string to float. Handles commas, parentheses, and missing values."""
+    if not isinstance(value, str):
+        return value
+    value = value.replace(',', '').strip()
+    if value.startswith('(') and value.endswith(')'):
+        value = '-' + value[1:-1]
+    try:
+        return float(value)
+    except ValueError:
+        return None
 
 def process_financial_data(tables):
     """Extract financial metrics from the messy PDFs into clean structured DataFrame."""
@@ -30,48 +30,99 @@ def process_financial_data(tables):
         'gross_profit_margin': [],
     }
 
-    for table in tables:
-        try:
-            # Clean table headers
-            table.columns = table.iloc[0].apply(clean_column_name)
-            table = table.drop(0).reset_index(drop=True)
-            available_columns = list(table.columns)
+    # Define the keywords for both financial categories
+    keywords_1 = ['for the year ended 31 march','total revenue', 'cost of sales', 'gross profit', 'other operating income', 'basic']
+    keywords_2 = ['net assets per share']
 
-            # Try matching best-fit columns
-            year_col = match_column(available_columns, ['year', 'year_ended', 'financial_year'])
-            revenue_col = match_column(available_columns, ['revenue', 'total_revenue'])
-            cost_col = match_column(available_columns, ['cost_of_sales', 'cost_of_revenue'])
-            opex_col = match_column(available_columns, ['operating_expenses', 'administrative_expenses', 'expenses'])
-            eps_col = match_column(available_columns, ['earnings_per_share', 'eps'])
-            net_asset_col = match_column(available_columns, ['net_asset_per_share', 'nav_per_share'])
+    # Initialize variables 
+    year = None
+    revenue = None
+    cost_of_sales = None
+    operating_expenses = None
+    eps = None
+    net_asset_per_share = None
+    gross_profit = None     
+          
+    for i, table in enumerate(tables):
+        # Set the first row as column headers and remove it
+        table.columns = table.iloc[0]
+        table = table.drop(0)
 
-            if not year_col:
-                continue  # Skip if no year column found
+        # Convert all cells to lowercase for matching
+        table_lower = table.astype(str).apply(lambda col: col.str.lower())
+    
+        # Dictionary to store matched values
+        matched_rows = {}
 
-            for idx, row in table.iterrows():
-                try:
-                    year = int(str(row.get(year_col)).split()[0])  # Pick only first part if mixed
-                    if 2019 <= year <= 2025:
-                        revenue = float(str(row.get(revenue_col)).replace(',', '').strip() or 0)
-                        cost_of_sales = float(str(row.get(cost_col)).replace(',', '').strip() or 0)
-                        operating_expenses = float(str(row.get(opex_col)).replace(',', '').strip() or 0)
-                        eps = float(str(row.get(eps_col)).replace(',', '').strip() or 0)
-                        net_asset_per_share = float(str(row.get(net_asset_col)).replace(',', '').strip() or 0)
+        for keyword in keywords_1:
+            # Find rows containing the keyword
+            row = table[table_lower.apply(lambda r: keyword in ' '.join(r), axis=1)]
+            if not row.empty:
+                matched_rows[keyword] = row.iloc[0, 3]
 
-                        gpm = ((revenue - cost_of_sales) / revenue * 100) if revenue else 0
+        if matched_rows:
+            print(f"\n✅ Table {i+1} contains financial rows:")
+            for k, v in matched_rows.items():
+                print(f"{k.title()} (column 3): {v}")
+                match k.title(): 
+                    case "For The Year Ended 31 March": year = v 
+                    case "Total Revenue": revenue = v 
+                    case "Cost Of Sales": cost_of_sales = v 
+                    case "Gross Profit": gross_profit = v 
+                    case "Other Operating Income": operating_expenses = v 
+                    case "Basic": eps = v
+            #display(table)  # Show the full table (optional)
+            break
+        else:
+            print(f"Table {i+1} does not contain any of the target keywords.")
 
-                        financial_data['year'].append(year)
-                        financial_data['revenue'].append(revenue)
-                        financial_data['cost_of_sales'].append(cost_of_sales)
-                        financial_data['operating_expenses'].append(operating_expenses)
-                        financial_data['eps'].append(eps)
-                        financial_data['net_asset_per_share'].append(net_asset_per_share)
-                        financial_data['gross_profit_margin'].append(gpm)
-                except (ValueError, TypeError) as e:
-                    logger.warning(f"Row skipped: {e}")
-        except Exception as e:
-            logger.error(f"Table processing failed: {e}")
 
+
+    # Loop through all the tables
+    for i, table in enumerate(tables):
+        # Set the first row as column headers and remove it
+        table.columns = table.iloc[0]
+        table = table.drop(0)
+
+        # Convert all cells to lowercase for matching
+        table_lower = table.astype(str).apply(lambda col: col.str.lower())
+    
+        # Dictionary to store matched values
+        matched_rows = {}
+
+        for keyword in keywords_2:
+            # Find rows containing the keyword
+            row = table[table_lower.apply(lambda r: keyword in ' '.join(r), axis=1)]
+            if not row.empty:
+                matched_rows[keyword] = row.iloc[0, 1]
+
+        if matched_rows:
+            print(f"\n✅ Table {i+1} contains financial rows:")
+            for k, v in matched_rows.items():
+                print(f"{k.title()} (column ): {v}")
+                net_asset_per_share = v
+
+               
+            #display(table)  # Show the full table (optional)
+            break
+        else:
+            print(f"Table {i+1} does not contain any of the target keywords.")
+                    
+
+                    
+
+            # Append to financial_data if year is found
+    if year is not None:
+        financial_data['year'].append(clean_number(year))
+        financial_data['revenue'].append(clean_number(revenue))
+        financial_data['cost_of_sales'].append(clean_number(cost_of_sales))
+        financial_data['operating_expenses'].append(clean_number(operating_expenses))
+        financial_data['eps'].append(clean_number(eps))
+        financial_data['net_asset_per_share'].append(clean_number(net_asset_per_share))
+        financial_data['gross_profit_margin'].append(clean_number(gross_profit))
+
+    
+    # Create DataFrame
     df = pd.DataFrame(financial_data)
     if df.empty:
         logger.warning("Warning: No financial data extracted!")
