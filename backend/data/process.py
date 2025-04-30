@@ -32,7 +32,7 @@ def process_financial_data(tables):
 
     # Define the keywords for both financial categories
     keywords_1 = ['for the year ended 31 march','total revenue', 'cost of sales', 'gross profit', 'other operating income', 'basic']
-    keywords_2 = ['net assets per share']
+    keywords_2 = ['net assets per share* (rs.)']
 
     # Initialize variables 
     year = None

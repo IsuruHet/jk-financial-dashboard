@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request,send_file
 from flask_cors import CORS
 from config import Config
 from data.extract import extract_tables_from_pdf
@@ -112,6 +112,18 @@ def get_annotations():
         'status': 'success',
         'annotations': annotations
     })
+
+@app.route('/api/download', methods=['GET'])
+def download_csv():
+    try:
+        csv_path = os.path.join(Config.PROCESSED_DATA_DIR, 'financial_data.csv')
+        if not os.path.exists(csv_path):
+            return jsonify({'status': 'error', 'message': 'CSV not found'}), 404
+        return send_file(csv_path, mimetype='text/csv', as_attachment=True)
+    except Exception as e:
+        logger.error(f"Download error: {str(e)}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
