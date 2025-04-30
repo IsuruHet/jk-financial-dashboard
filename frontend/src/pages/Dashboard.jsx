@@ -41,7 +41,7 @@ export default function Dashboard() {
   const years = data.map((d) => d.year);
 
   const chartData = (label, key, color) => ({
-    label: years,
+    labels: years,
     datasets: [
       {
         label,
