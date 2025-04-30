@@ -9,10 +9,13 @@ export default function FileUploader({ onUploadComplete }) {
     files.forEach((file) => formData.append("files", file));
 
     setLoading(true);
-    const res = await fetch("http://localhost:5000/api/extract", {
-      method: "POST",
-      body: formData,
-    });
+    const res = await fetch(
+      `${import.meta.env.VITE_API_BASE_URL}/api/extract`,
+      {
+        method: "POST",
+        body: formData,
+      }
+    );
 
     const data = await res.json();
     setLoading(false);
@@ -36,7 +39,7 @@ export default function FileUploader({ onUploadComplete }) {
       </button>
       <div className="mb-4 flex justify-end">
         <a
-          href="http://localhost:5000/api/download"
+          href={`${import.meta.env.VITE_API_BASE_URL}/api/download`}
           className="px-4 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700"
           download
         >
