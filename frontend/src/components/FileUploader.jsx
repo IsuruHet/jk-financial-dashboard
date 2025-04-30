@@ -20,6 +20,9 @@ export default function FileUploader({ onUploadComplete }) {
     const data = await res.json();
     setLoading(false);
     onUploadComplete(data.data);
+
+    // Refresh the page after upload is complete
+    window.location.reload();
   };
 
   return (

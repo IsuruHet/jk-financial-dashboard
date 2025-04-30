@@ -16,7 +16,7 @@ def clean_number(value):
     try:
         return float(value)
     except ValueError:
-        return 0
+        return None
 
 def process_financial_data(tables):
     """Extract financial metrics from the messy PDFs into clean structured DataFrame."""
@@ -32,7 +32,7 @@ def process_financial_data(tables):
 
     # Define the keywords for both financial categories
     keywords_1 = ['for the year ended 31 march','total revenue', 'cost of sales', 'gross profit', 'other operating income', 'basic']
-    keywords_2 = ['net assets per share* (rs.)','net assets per share** (rs.)']
+    keywords_2 = ['net assets per share** (rs.)','net assets per share* (rs.)','basic earnings per share (rs.)']
 
     # Initialize variables 
     year = None
@@ -92,7 +92,11 @@ def process_financial_data(tables):
             print(f"\n✅ Table {i+1} contains financial rows:")
             for k, v in matched_rows.items():
                 print(f"{k.title()} (column ): {v}")
-                net_asset_per_share = v
+                if(k.title()== "Basic Earnings Per Share (Rs.)"):
+                    eps = v
+                else:
+                    net_asset_per_share = v
+                
 
                
             #display(table)  # Show the full table (optional)
