@@ -7,6 +7,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 def clean_number(value):
+    
     """Convert financial string to float. Handles commas, parentheses, and missing values."""
     if not isinstance(value, str):
         return value
@@ -122,7 +123,44 @@ def process_financial_data(tables):
     df = pd.DataFrame(financial_data)
     if df.empty:
         logger.warning("Warning: No financial data extracted!")
-    return df
+    return df,year
+
+
+def process_shareholder_data(tables,y):
+    # Initialize a list to store extracted data
+    shareholders_data = []
+
+    for i, table in enumerate(tables):
+        # Convert all cells to lowercase and strip spaces
+        table_lower = table.astype(str).map(lambda x: x.strip().lower())
+
+        # Check each row
+        for _, row in table_lower.iterrows():
+            row_list = row.tolist()
+            number_of_count = sum("number of" in cell for cell in row_list)
+            percent_count = sum("%" in cell for cell in row_list)
+        
+            if number_of_count == 2 and percent_count == 2:
+                print("Row has at least two 'number of' and two '%' entries")
+                #display(table)
+
+                # Extract data starting from row 1 (assuming row 0 is header)
+                share_holder_names = table.iloc[1:, 0].astype(str).str.strip().tolist()
+                share_percentage = table.iloc[1:, 2].astype(str).str.strip().tolist()
+                year = [y] * len(share_holder_names)
+
+                for name, percentage, yr in zip(share_holder_names, share_percentage, year):
+                    shareholders_data.append([yr, name, percentage])
+
+                print(year)
+                print(share_holder_names)
+                print(share_percentage)
+       
+                break  # stop checking more rows in the same table
+
+  
+    ds = pd.DataFrame(shareholders_data, columns=["year", "shareholder_name", "share_percentage"])
+    return ds
 
 def forecast_metric(df, metric, steps=3):
     """Forecast future values of a metric using ARIMA."""

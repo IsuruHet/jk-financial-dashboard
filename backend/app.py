@@ -2,7 +2,7 @@ from flask import Flask, jsonify, request,send_file
 from flask_cors import CORS
 from config import Config
 from data.extract import extract_tables_from_pdf
-from data.process import process_financial_data, forecast_metric
+from data.process import process_financial_data,process_shareholder_data, forecast_metric
 import os
 import pandas as pd
 import logging
@@ -20,6 +20,7 @@ def extract_pdfs():
     try:
         files = request.files.getlist('files')
         all_data = []
+        shareholder_data = []
         
         for file in files:
             if file.filename.split('.')[-1].lower() not in Config.ALLOWED_EXTENSIONS:
@@ -27,21 +28,36 @@ def extract_pdfs():
             file_path = os.path.join(Config.PDF_DIR, file.filename)
             file.save(file_path)
             tables = extract_tables_from_pdf(file_path)
-            df = process_financial_data(tables)
+            df,year = process_financial_data(tables)
+            sh = process_shareholder_data(tables,year)
+
             all_data.append(df)
+            shareholder_data.append(sh)
         
         if not all_data:
             return jsonify({'status': 'error', 'message': 'No valid data extracted'}), 400
         
+        if not shareholder_data:
+            return jsonify({'status': 'error', 'message': 'No valid data extracted'}), 400
+        
         combined_df = pd.concat(all_data, ignore_index=True)
         combined_df = combined_df.groupby('year').mean().reset_index()
+
+        combined_sh = pd.concat(shareholder_data, ignore_index=True)
+        combined_sh = combined_sh.sort_values(by='year').reset_index(drop=True)
+
+
         
         output_path = os.path.join(Config.PROCESSED_DATA_DIR, 'financial_data.csv')
         combined_df.to_csv(output_path, index=False)
+
+        output_path_sh = os.path.join(Config.PROCESSED_DATA_DIR, 'shareholder_data.csv')
+        combined_sh.to_csv(output_path_sh, index=False)
         
         return jsonify({
             'status': 'success',
-            'data': combined_df.to_dict(orient='records')
+            'data': combined_df.to_dict(orient='records'),
+            'shareholder':combined_sh.to_dict(orient='records')
         })
     except Exception as e:
         logger.error(f"Error in extract_pdfs: {str(e)}")

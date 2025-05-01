@@ -11,14 +11,14 @@ def extract_tables_from_pdf(file_path):
     """
     try:
         # Focus on financial statements pages
-        tables = camelot.read_pdf(file_path, pages='170-end', flavor='stream')
+        tables = camelot.read_pdf(file_path, pages='130-end', flavor='stream')
 
         if tables.n == 0:
             logger.warning(f"No tables found in {file_path}")
             return []
 
         useful_tables = []
-        keywords = ['total revenue', 'cost of sales', 'operating expenses', 'gross profit','earnings per share', 'net asset']
+        keywords = ['total revenue', 'cost of sales', 'operating expenses', 'gross profit','earnings per share', 'net asset','number of shares','%','top twenty shareholders of the company']
 
         for i, table in enumerate(tables):
             df = table.df
