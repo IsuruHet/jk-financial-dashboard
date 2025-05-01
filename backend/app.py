@@ -6,6 +6,9 @@ from data.process import process_financial_data,process_shareholder_data, foreca
 import os
 import pandas as pd
 import logging
+import zipfile
+import io
+
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -57,7 +60,7 @@ def extract_pdfs():
         return jsonify({
             'status': 'success',
             'data': combined_df.to_dict(orient='records'),
-            'shareholder':combined_sh.to_dict(orient='records')
+            'shareholders':combined_sh.to_dict(orient='records')
         })
     except Exception as e:
         logger.error(f"Error in extract_pdfs: {str(e)}")
@@ -84,7 +87,7 @@ def get_financials():
             df = df[['year', metric]]
         
         if currency == 'USD':
-            df[['revenue', 'cost_of_sales', 'operating_expenses', 'eps', 'net_asset_per_share']] *= 0.005
+            df[['revenue', 'cost_of_sales', 'operating_expenses', 'eps', 'net_asset_per_share']] *= 0.0033 #2025/04/01
         
         return jsonify({
             'status': 'success',
@@ -93,6 +96,57 @@ def get_financials():
     except Exception as e:
         logger.error(f"Error in get_financials: {str(e)}")
         return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
+    """Get processed shareholders data with optional filters."""
+    try:
+        year = request.args.get('year', type=int)
+        
+        data_path = os.path.join(Config.PROCESSED_DATA_DIR, 'shareholder_date.csv')
+        if not os.path.exists(data_path):
+            return jsonify({'status': 'error', 'message': 'No processed data available'}), 404
+        
+        df = pd.read_csv(data_path)
+        
+        
+        return jsonify({
+            'status': 'success',
+            'shareholders': df.to_dict(orient='records')
+        })
+    except Exception as e:
+        logger.error(f"Error in get_shareholders: {str(e)}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/shareholders', methods=['GET'])
+def get_shareholders():
+    """Get processed shareholders data with optional year filter."""
+    try:
+        year = request.args.get('year', type=int)
+        
+        data_path = os.path.join(Config.PROCESSED_DATA_DIR, 'shareholder_data.csv')  # filename corrected
+        if not os.path.exists(data_path):
+            return jsonify({'status': 'error', 'message': 'No processed data available'}), 404
+        
+        df = pd.read_csv(data_path)
+
+        # Clean up invalid rows
+        df = df.dropna(subset=['year', 'shareholder_name', 'share_percentage'])
+        df = df[df['share_percentage'].apply(lambda x: str(x).replace('.', '', 1).isdigit())]
+        df['share_percentage'] = df['share_percentage'].astype(float)
+        df['year'] = df['year'].astype(int)
+
+        # Filter by year if provided
+        if year is not None:
+            df = df[df['year'] == year]
+
+        return jsonify({
+            'status': 'success',
+            'shareholders': df.to_dict(orient='records')
+        })
+    except Exception as e:
+        logger.error(f"Error in get_shareholders: {str(e)}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
 
 @app.route('/api/forecast', methods=['GET'])
 def get_forecast():
@@ -129,15 +183,31 @@ def get_annotations():
         'annotations': annotations
     })
 
-@app.route('/api/download', methods=['GET'])
-def download_csv():
+@app.route('/api/download-all', methods=['GET'])
+def download_all_csvs():
     try:
-        csv_path = os.path.join(Config.PROCESSED_DATA_DIR, 'financial_data.csv')
-        if not os.path.exists(csv_path):
-            return jsonify({'status': 'error', 'message': 'CSV not found'}), 404
-        return send_file(csv_path, mimetype='text/csv', as_attachment=True)
+        # Paths to both CSV files
+        files = {
+            "financial_data.csv": os.path.join(Config.PROCESSED_DATA_DIR, "financial_data.csv"),
+            "shareholder_data.csv": os.path.join(Config.PROCESSED_DATA_DIR, "shareholder_data.csv")
+        }
+
+        # Check if both files exist
+        for name, path in files.items():
+            if not os.path.exists(path):
+                return jsonify({'status': 'error', 'message': f'{name} not found'}), 404
+
+        # Create an in-memory ZIP file
+        zip_buffer = io.BytesIO()
+        with zipfile.ZipFile(zip_buffer, 'w') as zip_file:
+            for name, path in files.items():
+                zip_file.write(path, arcname=name)
+
+        zip_buffer.seek(0)
+        return send_file(zip_buffer, mimetype='application/zip', as_attachment=True, download_name='financial_reports.zip')
+
     except Exception as e:
-        logger.error(f"Download error: {str(e)}")
+        logger.error(f"Download all error: {str(e)}")
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 

@@ -4,6 +4,9 @@ import FileUploader from "../components/FileUploader";
 import FinancialCard from "../components/FinancialCard";
 import DualBarChart from "../components/DualBarChart";
 import { fetchFinancialData } from "../services/api";
+import { fetchShareholdersByYear } from "../services/api";
+import ShareholderChart from "../components/ShareholderChart";
+
 import Footer from "../components/Footer";
 
 import {
@@ -16,6 +19,7 @@ import {
   Title,
   Tooltip,
   Legend,
+  ArcElement,
 } from "chart.js";
 
 ChartJS.register(
@@ -26,17 +30,26 @@ ChartJS.register(
   PointElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
+  ArcElement
 );
 
 export default function Dashboard() {
   const [data, setData] = useState([]);
   const [currency, setCurrency] = useState("LKR");
   const [darkMode, setDarkMode] = useState(false);
+  const [shareholders, setShareholders] = useState([]);
+  const [selectedYear, setSelectedYear] = useState("2019");
 
   useEffect(() => {
-    fetchFinancialData(currency).then(setData);
-  }, [currency]);
+    fetchFinancialData(currency)
+      .then(setData)
+      .catch((err) => console.error("Error fetching financial data:", err));
+
+    fetchShareholdersByYear(selectedYear)
+      .then(setShareholders)
+      .catch((err) => console.error("Error fetching shareholders:", err));
+  }, [currency, selectedYear]);
 
   const years = data.map((d) => d.year);
 
@@ -94,6 +107,27 @@ export default function Dashboard() {
           data={chartData("Net Asset/Share", "net_asset_per_share", "#fb923c")}
         />
       </div>
+
+      <div className="mt-8">
+        <div className="flex justify-between items-center mb-2">
+          <h2 className="text-xl font-bold">Top Shareholders</h2>
+          <select
+            value={selectedYear}
+            onChange={(e) => setSelectedYear(e.target.value)}
+            className="px-3 py-1 border rounded bg-white dark:bg-gray-700 dark:text-white"
+          >
+            {["2019", "2020", "2021", "2022", "2023"].map((y) => (
+              <option key={y} value={y}>
+                {y}
+              </option>
+            ))}
+          </select>
+        </div>
+        {shareholders.length > 0 && (
+          <ShareholderChart data={shareholders} year={selectedYear} />
+        )}
+      </div>
+
       <Footer />
     </div>
   );

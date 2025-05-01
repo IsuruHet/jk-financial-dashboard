@@ -42,7 +42,7 @@ export default function FileUploader({ onUploadComplete }) {
       </button>
       <div className="mb-4 flex justify-end">
         <a
-          href={`${import.meta.env.VITE_API_BASE_URL}/api/download`}
+          href={`${import.meta.env.VITE_API_BASE_URL}/api/download-all`}
           className="px-4 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700"
           download
         >
