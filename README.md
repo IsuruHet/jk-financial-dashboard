@@ -78,7 +78,8 @@ Use the **Upload PDFs** button to select and send multiple annual reports. Once 
 | GET    | `/api/financials`       | Fetch processed financial data      |
 | GET    | `/api/forecast?metric=` | Predict future values using ARIMA   |
 | GET    | `/api/annotations`      | Key financial event annotations     |
-| GET    | `/api/download`         | Download processed CSV from backend |
+| GET    | `/api/download-all`     | Download processed CSV from backend |
+| GET    | `/api/shareholders`     | Top Twenty Shareholders 			 |
 
 ---
 
