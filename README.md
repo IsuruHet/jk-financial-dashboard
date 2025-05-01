@@ -9,7 +9,9 @@
 
 An interactive AI-powered dashboard to visualize and analyze key financial metrics of **John Keells Holdings PLC (2019–2024)** using **React**, **Tailwind CSS**, **Flask**, and **Chart.js**.
 
----
+## 🎬 Live Demo
+
+## 📽️ [Click to watch the demo video](./2025-05-01%2013-30-55.mp4)
 
 ## 🚀 Features
 
