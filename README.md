@@ -11,7 +11,7 @@ An interactive AI-powered dashboard to visualize and analyze key financial metri
 
 ## 🎬 Live Demo
 
-![Video](./2025-05-01%2013-30-55.m4v)
+![Video](./2025-05-01%2013-30-55.mp4)
 
 ## 🚀 Features
 
